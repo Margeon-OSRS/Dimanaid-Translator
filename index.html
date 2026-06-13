@@ -1142,7 +1142,7 @@ a{color:var(--gold-soft);}
             <tr><td class="en">1st: I / me</td><td><span class="au">In</span></td><td><span class="au">Inid</span> <span class="en">my</span></td><td><span class="au">Inae</span> <span class="en">we</span></td></tr>
             <tr><td class="en">2nd: you</td><td><span class="au">Ir</span></td><td><span class="au">Irid</span> <span class="en">your</span></td><td><span class="au">Irae</span> <span class="en">you all</span></td></tr>
             <tr><td class="en">3rd: he / she / they</td><td><span class="au">Eno</span></td><td><span class="au">Enoid</span> <span class="en">their</span></td><td><span class="au">Enoae</span> <span class="en">they</span></td></tr>
-            <tr><td class="en">3rd inanimate: it</td><td><span class="au">Ki</span></td><td><span class="au">Kiid</span> <span class="en">its</span></td><td><span class="au">Kiae</span> <span class="en">they</span></td></tr>
+            <tr><td class="en">3rd inanimate: it</td><td><span class="au">Ci</span></td><td><span class="au">Ciid</span> <span class="en">its</span></td><td><span class="au">Ciae</span> <span class="en">they</span></td></tr>
           </table>
           <p class="note">Possessive and plural stack: <span class="au">Inadae</span> = our / ours, the <span class="au">-ad</span> kept inside and the plural <span class="au">-ae</span> closing the word.</p>
         </div>
@@ -1157,7 +1157,7 @@ a{color:var(--gold-soft);}
             <tr><th>Rank</th><th>Marker</th><th>Used for</th><th>Example</th></tr>
             <tr><td class="en">Plain</td><td><span class="en">(none)</span></td><td class="en">anyone, equal footing</td><td><span class="au">Ir</span> <span class="en">you</span></td></tr>
             <tr><td class="en">Honoured</td><td><span class="au">An&rsquo;</span></td><td class="en">courtesy, freely added</td><td><span class="au">An&rsquo;Ir</span> <span class="en">you, honoured</span></td></tr>
-            <tr><td class="en">Ascended</td><td><span class="au">Ori&rsquo;</span></td><td class="en">the dynasty and the divine</td><td><span class="au">Ori&rsquo;Eno</span></td></tr>
+            <tr><td class="en">Ascended</td><td><span class="au">Ori&rsquo;</span></td><td class="en">the dynasty and the divine</td><td><span class="au">Ori&rsquo;Enu</span></td></tr>
           </table>
           <p class="note">The court&rsquo;s <span class="au">Itu&rsquo;</span> (greater) and <span class="au">Ke&rsquo;</span> (lesser) are gone; standing is now heard in the words a speaker chooses.</p>
         </div>
@@ -1494,11 +1494,13 @@ const RANK_LABEL={"Ori'":'ascended',"Itu'":'greater',"Ke'":'lesser'};
 let pronRank={p1:'',p2:'',p3:''};
 
 /* ---------- normalization for the native font (a-z, space, . ?) ---------- */
-function toNative(s){
+function toNative(s){ return toNativeRaw(dimFromHigh(s)); }
+function toNativeRaw(s){
   return s.normalize('NFD')
     .replace(/[\u0300-\u036f]/g,'')   // strip combining accents
     .replace(/[\u2019'\u02bc]/g,'')   // drop apostrophes
-    .replace(/[CWcw]/g,'')            // font has no glyph for c/w, drop from the script
+    .replace(/[Cc]/g,m=>m==='C'?'K':'k') // Dimanaid c (from k) shares the k glyph
+    .replace(/[Ww]/g,'')             // font has no glyph for w
     .replace(/[^A-Za-z .?\n]/g,'');   // keep only mappable glyphs
 }
 
@@ -1547,7 +1549,7 @@ function enableForgeCopy(){
 
 /* ---------- native-script PNG export ---------- */
 async function exportNativePNG(romanText, filenameBase){
-  const native=toNative(romanText||'');
+  const native=toNativeRaw(romanText||'');
   if(!native.trim()) return false;
   try{ await document.fonts.load("96px 'AudaladScript'"); await document.fonts.ready; }catch(e){}
   const fontPx=96, padX=48, padY=40;
@@ -1995,7 +1997,7 @@ function render(){
     const ipa=ipaText(nstr);
     outputEl.innerHTML =
       '<div class="roman">'+escapeHtml(str)+'</div>'+
-      '<div class="native">'+escapeHtml(toNative(nstr))+'</div>'+
+      '<div class="native">'+escapeHtml(toNativeRaw(nstr))+'</div>'+
       (ipa?'<div class="c-ipa">'+escapeHtml(ipa)+'</div>':'');
   } else {
     lastOutText=str; lastNativeText='';
@@ -2115,8 +2117,8 @@ function renderDict(){
   countEl.textContent=items.length+' of '+all.length+' entries'+
     (offCount?' \u00b7 '+offCount+' community':'')+(customCount?' \u00b7 '+customCount+' forged':'');
   dictlist.innerHTML='';
-  const head=(au,badge)=>'<div><span class="e-au copyable" data-copy="'+escapeHtml(au)+'" title="Click to copy">'+escapeHtml(au)+'</span><span class="e-native">'+escapeHtml(toNative(au))+'</span>'+(badge||'')+'</div>'+
-    (ipaText(au)?'<div class="e-ipa">'+escapeHtml(ipaText(au))+'</div>':'');
+  const head=(au,badge)=>{ const df=dimFromHigh(au); return '<div><span class="e-au copyable" data-copy="'+escapeHtml(df)+'" title="Click to copy">'+escapeHtml(df)+'</span><span class="e-native">'+escapeHtml(toNative(au))+'</span>'+(badge||'')+'</div>'+
+    (ipaText(df)?'<div class="e-ipa">'+escapeHtml(ipaText(df))+'</div>':''); };
   items.forEach(d=>{
     const e=document.createElement('div');
     if(d.custom){
@@ -2207,14 +2209,14 @@ function renderConj(){
     const form=prefix+v.charAt(0).toLowerCase()+v.slice(1);
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="c-tense">'+name+'</td>'+
-      '<td><span class="c-form">'+escapeHtml(form)+'</span> &nbsp; <span class="c-native">'+escapeHtml(toNative(form))+'</span></td>'+
+      '<td><span class="c-form">'+escapeHtml(dimFromHigh(form))+'</span> &nbsp; <span class="c-native">'+escapeHtml(toNative(form))+'</span></td>'+
       '<td style="text-align:right" class="c-gloss">'+escapeHtml(glossPre+meaning)+'</td>';
     conjBody.appendChild(tr);
   });
   // negation row
   const tr=document.createElement('tr');
   tr.innerHTML='<td class="c-tense">Negated</td>'+
-    '<td><span class="c-form">'+escapeHtml(v+'ir')+'</span> &nbsp; <span class="c-native">'+escapeHtml(toNative(v+'ir'))+'</span></td>'+
+    '<td><span class="c-form">'+escapeHtml(dimFromHigh(v+'ir'))+'</span> &nbsp; <span class="c-native">'+escapeHtml(toNative(v+'ir'))+'</span></td>'+
     '<td style="text-align:right" class="c-gloss">'+escapeHtml('to not '+meaning)+'</td>';
   conjBody.appendChild(tr);
 }
@@ -2285,7 +2287,7 @@ function renderCoins(){
       ? '<span class="cr-inlex" title="Added to lexicon">&#10003; in lexicon</span>'
       : '<button class="cr-promote" title="Add to lexicon" data-i="'+i+'">&uarr; Lexicon</button>';
     row.innerHTML='<span class="cr-native">'+escapeHtml(toNative(c.form))+'</span>'+
-      '<span class="cr-form">'+escapeHtml(c.form)+'</span>'+
+      '<span class="cr-form">'+escapeHtml(dimFromHigh(c.form))+'</span>'+
       '<span class="cr-mean">'+escapeHtml(c.mean||'\u00b7')+' <small>'+escapeHtml(c.kind)+(c.note?' \u00b7 '+escapeHtml(c.note):'')+'</small></span>'+
       promo+
       '<button class="cr-del" title="Remove" data-i="'+i+'">&times;</button>';
@@ -2358,7 +2360,7 @@ function renderNumber(){
     roman=toks.join(' ');
   }
   window.__numRoman=roman;
-  form.textContent=roman;
+  form.textContent=dimFromHigh(roman);
   nat.textContent=toNative(roman);
   ipa.textContent=ipaText(roman);
   brk.innerHTML = n+' = '+c.parts.map(p=>'<b>'+escapeHtml(p[0])+'</b> <span style="opacity:.6">('+p[1]+')</span>').join(' + ');
@@ -2432,7 +2434,7 @@ function renderCmp(){
 }
 function updateCmpPreview(){
   const form=document.getElementById('cmpFinal').value.trim();
-  document.getElementById('cmpForm').textContent=form;
+  document.getElementById('cmpForm').textContent=dimFromHigh(form);
   document.getElementById('cmpNative').textContent=toNative(form);
   const hit=existsInLexicon(form);
   document.getElementById('cmpWarn').textContent = hit? 'Already exists: '+hit.au+' = '+hit.en : '';
@@ -2481,7 +2483,7 @@ function rootForStem(stem){
 function updateVb(){
   const stem=document.getElementById('vbStem').value.trim();
   const form=buildVerb();
-  document.getElementById('vbForm').textContent=form;
+  document.getElementById('vbForm').textContent=dimFromHigh(form);
   document.getElementById('vbNative').textContent=toNative(form);
   let gloss='';
   if(form){
@@ -2585,7 +2587,7 @@ function renderAffixes(){
       if(!base){ document.getElementById('drBase').focus(); return; }
       const form=a.fn(base);
       drResult={form,note:a.note};
-      document.getElementById('drForm').textContent=form;
+      document.getElementById('drForm').textContent=dimFromHigh(form);
       document.getElementById('drNative').textContent=toNative(form);
       const km=knownMeaning(base);
       document.getElementById('drGloss').textContent=a.note+(km?' \u00b7 '+km:'');
@@ -2616,7 +2618,7 @@ function regalForm(){
 }
 function updateRg(){
   const form=regalForm();
-  document.getElementById('rgForm').textContent=form;
+  document.getElementById('rgForm').textContent=dimFromHigh(form);
   document.getElementById('rgNative').textContent=toNative(form);
   const base=document.getElementById('rgBase').value.trim();
   const km=knownMeaning(base);
@@ -2663,13 +2665,13 @@ function rollRoots(){
     if(seen[r]||existsInLexicon(r)) continue;
     seen[r]=1;n++;
     const b=document.createElement('button');b.className='morphbtn';
-    b.innerHTML='<span class="mb-f">'+escapeHtml(r)+'</span><span class="mb-m">'+escapeHtml(toNative(r))+'</span>';
+    b.innerHTML='<span class="mb-f">'+escapeHtml(dimFromHigh(r))+'</span><span class="mb-m">'+escapeHtml(toNative(r))+'</span>';
     b.style.fontFamily='inherit';
     b.querySelector('.mb-m').style.fontFamily="'AudaladScript'";
     b.querySelector('.mb-m').style.fontSize='20px';
     b.addEventListener('click',()=>{
       gnSelected=r;
-      document.getElementById('gnForm').textContent=r;
+      document.getElementById('gnForm').textContent=dimFromHigh(r);
       document.getElementById('gnNative').textContent=toNative(r);
       document.getElementById('gnWarn').textContent=dupWarnText(r);
       list.querySelectorAll('.morphbtn').forEach(x=>x.classList.remove('typebtn','active'));
@@ -2763,14 +2765,14 @@ function nmSeedCandidates(seed){
 let nmSelected='', nmSelMean='';
 function nmMakeBtn(list, word, mean){
   const b=document.createElement('button');b.className='morphbtn';
-  b.innerHTML='<span class="mb-f">'+escapeHtml(word)+'</span><span class="mb-m">'+escapeHtml(toNative(word))+'</span>';
+  b.innerHTML='<span class="mb-f">'+escapeHtml(dimFromHigh(word))+'</span><span class="mb-m">'+escapeHtml(toNative(word))+'</span>';
   b.style.fontFamily='inherit';
   b.querySelector('.mb-m').style.fontFamily="'AudaladScript'";
   b.querySelector('.mb-m').style.fontSize='20px';
   if(mean) b.title=word+' \u00b7 '+mean;
   b.addEventListener('click',()=>{
     nmSelected=word; nmSelMean=mean||'';
-    document.getElementById('nmForm').textContent=word;
+    document.getElementById('nmForm').textContent=dimFromHigh(word);
     document.getElementById('nmNative').textContent=toNative(word);
     document.getElementById('nmWarn').textContent=dupWarnText(word);
     const mf=document.getElementById('nmMean');
@@ -3246,7 +3248,7 @@ function pronounGloss(){
 }
 function renderPronoun(){
   const f=pronounForm();
-  document.getElementById('pnForm').textContent=f;
+  document.getElementById('pnForm').textContent=dimFromHigh(f);
   document.getElementById('pnNative').textContent=toNative(f);
   document.getElementById('pnGloss').textContent=pronounGloss();
   document.getElementById('pnWarn').textContent=dupWarnText(f);
@@ -3269,7 +3271,7 @@ function renderPrGrid(){
   h+='</tr></thead><tbody>';
   PR_POVS.forEach(p=>{
     h+='<tr><td class="c-tense">'+p.label+' <small>('+p.form+')</small></td>';
-    PR_RANKS.forEach(r=>{const f=r.prefix+p.form;h+='<td><span class="c-form">'+escapeHtml(f)+'</span> <span class="c-native">'+escapeHtml(toNative(f))+'</span></td>';});
+    PR_RANKS.forEach(r=>{const f=r.prefix+p.form;h+='<td><span class="c-form">'+escapeHtml(dimFromHigh(f))+'</span> <span class="c-native">'+escapeHtml(toNative(f))+'</span></td>';});
     h+='</tr>';
   });
   h+='</tbody></table>';
@@ -3527,7 +3529,7 @@ updateWantsBadge();
       const np=[]; res.tokens.forEach(t=>{ if(t.punct){np.push(t.punct);return;} if(t.au!=null) np.push(t.au); });
       const ns=joinParts(np); l_lastText=str; l_lastNative=ns;
       const ipa=ipaText(ns);
-      html+='<div class="native">'+escapeHtml(toNative(ns))+'</div>'+(ipa?'<div class="c-ipa">'+escapeHtml(ipa)+'</div>':'');
+      html+='<div class="native">'+escapeHtml(toNativeRaw(ns))+'</div>'+(ipa?'<div class="c-ipa">'+escapeHtml(ipa)+'</div>':'');
     } else { l_lastText=str; l_lastNative=''; }
     lOut.innerHTML=html;
     res.tokens.forEach(t=>{
@@ -3562,7 +3564,7 @@ updateWantsBadge();
 
   function lowEntries(){ return lex().map(d=>({dia:harborForm(d.au),std:d.au,en:d.en,pos:d.pos})).sort((a,b)=>a.dia.toLowerCase().localeCompare(b.dia.toLowerCase())); }
   const lSearch=document.getElementById('l-search'), lLexList=document.getElementById('l-lexlist'), lCount=document.getElementById('l-count');
-  function rowHtml(e){ const changed=e.dia!==e.std; return '<div class="l-row"><div class="l-dia">'+escapeHtml(e.dia)+'<span class="au">'+escapeHtml(toNative(e.dia))+'</span></div><div class="l-mean">'+escapeHtml(e.en)+'</div><div class="l-from">'+(changed?('from <b>'+escapeHtml(e.std)+'</b>'):'unchanged')+'</div></div>'; }
+  function rowHtml(e){ const changed=e.dia!==e.std; return '<div class="l-row"><div class="l-dia">'+escapeHtml(e.dia)+'<span class="au">'+escapeHtml(toNativeRaw(e.dia))+'</span></div><div class="l-mean">'+escapeHtml(e.en)+'</div><div class="l-from">'+(changed?('from <b>'+escapeHtml(e.std)+'</b>'):'unchanged')+'</div></div>'; }
   const LPOS_ORDER=['all','n','v','adj','adv','prep','conj','det','pron','num','ord','q','intj','title'];
   let activeLowPos='all', lPosBuilt=false;
   function buildLowPosFilter(){
@@ -3600,7 +3602,7 @@ updateWantsBadge();
 
   const MORPH=[['Autai','water'],['Aurdi','sea'],['Utura','light'],['Murak','foot'],['Karu','coin'],['Sarek','to know'],['Nishi','child'],['Audalad','island']];
   let mi=0;
-  function spin(){ const pair=MORPH[mi%MORPH.length]; mi++; const lo=harborForm(pair[0]); const hi=document.getElementById('lm-hi'); if(!hi) return; hi.textContent=pair[0]; document.getElementById('lm-lo').textContent=lo; document.getElementById('lm-au').textContent=toNative(lo); document.getElementById('lm-cap').innerHTML='&ldquo;'+pair[1]+'&rdquo; &middot; the high tongue, then the low form'; }
+  function spin(){ const pair=MORPH[mi%MORPH.length]; mi++; const lo=harborForm(pair[0]); const hi=document.getElementById('lm-hi'); if(!hi) return; hi.textContent=pair[0]; document.getElementById('lm-lo').textContent=lo; document.getElementById('lm-au').textContent=toNativeRaw(lo); document.getElementById('lm-cap').innerHTML='&ldquo;'+pair[1]+'&rdquo; &middot; the high tongue, then the low form'; }
   spin(); setInterval(spin, 2600);
 
   lRender();
@@ -3656,6 +3658,7 @@ updateWantsBadge();
     var nn=dimNoun(d);
     if(nn){ d=dimSound(nn.stem)+(nn.plural?'ae':'')+(nn.poss?'ad':''); } else { d=dimSound(d); }
     var out=pre+d+suf;
+    out=out.replace(/ad$/,'id');   // light ending: final -ad surfaces as -id
     if(cap && out) out=out.charAt(0).toUpperCase()+out.slice(1);
     return out;
   }
@@ -3822,7 +3825,7 @@ updateWantsBadge();
       var np=[]; res.tokens.forEach(function(t){ if(t.punct){np.push(t.punct);return;} if(t.au!=null) np.push(t.au); });
       var ns=joinParts(np); d_lastText=str; d_lastNative=ns;
       var ipa=ipaText(ns);
-      html+='<div class="native">'+escapeHtml(toNative(ns))+'</div>'+(ipa?'<div class="c-ipa">'+escapeHtml(ipa)+'</div>':'');
+      html+='<div class="native">'+escapeHtml(toNativeRaw(ns))+'</div>'+(ipa?'<div class="c-ipa">'+escapeHtml(ipa)+'</div>':'');
     } else { d_lastText=str; d_lastNative=''; }
     dOut.innerHTML=html;
     res.tokens.forEach(function(t){
@@ -3857,7 +3860,7 @@ updateWantsBadge();
 
   function dimEntries(){ return lex().map(function(d){ return {dim:dimFromHigh(d.au), std:d.au, en:d.en, pos:d.pos}; }).sort(function(a,b){ return a.dim.toLowerCase().localeCompare(b.dim.toLowerCase()); }); }
   var dSearch=document.getElementById('d-search'), dLexList=document.getElementById('d-lexlist'), dCount=document.getElementById('d-count');
-  function dRowHtml(e){ var changed=e.dim!==e.std; return '<div class="l-row"><div class="l-dia">'+escapeHtml(e.dim)+'<span class="au">'+escapeHtml(toNative(e.dim))+'</span></div><div class="l-mean">'+escapeHtml(e.en)+'</div><div class="l-from">'+(changed?('from <b>'+escapeHtml(e.std)+'</b>'):'unchanged')+'</div></div>'; }
+  function dRowHtml(e){ var changed=e.dim!==e.std; return '<div class="l-row"><div class="l-dia">'+escapeHtml(e.dim)+'<span class="au">'+escapeHtml(toNativeRaw(e.dim))+'</span></div><div class="l-mean">'+escapeHtml(e.en)+'</div><div class="l-from">'+(changed?('from <b>'+escapeHtml(e.std)+'</b>'):'unchanged')+'</div></div>'; }
   var DPOS_ORDER=['all','n','v','adj','adv','prep','conj','det','pron','num','ord','q','intj','title'];
   var activeDimPos='all', dPosBuilt=false;
   function buildDimPosFilter(){
